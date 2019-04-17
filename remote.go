@@ -647,29 +647,14 @@ func calculateRefs(
 		spec = append(spec, refspecAllTags)
 	}
 
-	refs := make(memory.ReferenceStorage)
-	for _, s := range spec {
-		if err := doCalculateRefs(s, remoteRefs, refs); err != nil {
-			return nil, err
-		}
-	}
-
-	return refs, nil
-}
-
-func doCalculateRefs(
-	s config.RefSpec,
-	remoteRefs storer.ReferenceStorer,
-	refs memory.ReferenceStorage,
-) error {
 	iter, err := remoteRefs.IterReferences()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var matched bool
-	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		if !s.Match(ref.Name()) {
+	refs := make(memory.ReferenceStorage)
+	return refs, iter.ForEach(func(ref *plumbing.Reference) error {
+		if !config.MatchAny(spec, ref.Name()) {
 			return nil
 		}
 
@@ -686,23 +671,8 @@ func doCalculateRefs(
 			return nil
 		}
 
-		matched = true
-		if err := refs.SetReference(ref); err != nil {
-			return err
-		}
-
-		if !s.IsWildcard() {
-			return storer.ErrStop
-		}
-
-		return nil
+		return refs.SetReference(ref)
 	})
-
-	if !matched && !s.IsWildcard() {
-		return fmt.Errorf("couldn't find remote ref %q", s.Src())
-	}
-
-	return err
 }
 
 func getWants(localStorer storage.Storer, refs memory.ReferenceStorage) ([]plumbing.Hash, error) {
