@@ -17,4 +17,4 @@ for p in "${path_array[@]}"; do
   fi
 done
 
-PATH=$(join_by : "${npath[@]}") make test-coverage
+GOPATH=$(realpath $(dirname $(realpath "$0"))/../../../..) PATH=$(join_by : "${npath[@]}") make test-coverage
